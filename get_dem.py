@@ -1,4 +1,4 @@
-
+import os
 
 def get_dem(bbox, out_dir):
     
@@ -11,7 +11,7 @@ def get_dem(bbox, out_dir):
     # So, use the old school os.system(..) calls.
     # WARNING: This path might not work for DPS jobs. It was found via the ADE Terminal: echo $PROJ_DATA
     os.environ['PROJ_DATA'] = '/opt/conda/share/proj'
-    os.system(f"sardem --bbox {bbox} --data-source COP -o {out_file} --output-format GTiff")
+    os.system(f"sardem --bbox {bbox} --data-source COP -o {dem_file} --output-format GTiff")
 
 
 
