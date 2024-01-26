@@ -3,6 +3,7 @@ channels:
     - conda-forge
     - nodefaults  # force everything to come from conda-forge channel
 dependencies:
+    - gdal >= 3.4.2
     - sardem  # to download and crop the Copernicus DEM
 
 

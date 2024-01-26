@@ -5,7 +5,11 @@
 # For NASA MAAP DPS, use `source activate <custom>`, not `conda activate <custom>`
 source activate dem
 
-INPUT_BBOX=$1
+# [left  bottom  right top]
+INPUT_LEFT=$1
+INPUT_BOTTOM=$2
+INPUT_RIGHT=$3
+INPUT_TOP=$4
 
 # Get path to this run.sh script
 basedir=$( cd "$(dirname "$0")" ; pwd -P )
@@ -17,5 +21,5 @@ mkdir -p output
 # Setup the environment variables. (Req'd for sardem)
 export HOME=/home/ops
 
-python ${basedir}/get_dem.py --bbox ${INPUT_BBOX} --output_dir output
+python ${basedir}/get_dem.py --bbox ${INPUT_LEFT} ${INPUT_BOTTOM} ${INPUT_RIGHT} ${INPUT_TOP} --out_dir output
 
