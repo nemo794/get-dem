@@ -10,16 +10,27 @@ INPUT_LEFT=$1
 INPUT_BOTTOM=$2
 INPUT_RIGHT=$3
 INPUT_TOP=$4
+COMPUTE=$5
+
+echo $INPUT_LEFT
+echo $INPUT_BOTTOM
+echo $INPUT_RIGHT
+echo $INPUT_TOP
+echo $COMPUTE
+
 
 # Get path to this run.sh script
 basedir=$( cd "$(dirname "$0")" ; pwd -P )
 
-# Per DPS convention, the directory to place outputs into MUST be called "output".
-# Only items in a directory with that name will persist in my-public-bucket after DPS finishes.
+# Per NASA MAAP DPS convention, all outputs MUST be placed
+# by the algorithm into a directory called "output".
+# Once the DPS job finishes, MAAP will copy everything from "output"
+# to a directory in my-public-bucket. Everything else on the instance
+# will be destroyed.
 mkdir -p output
 
 # Setup the environment variables. (Req'd for sardem)
 export HOME=/home/ops
 
-python ${basedir}/get_dem.py --bbox ${INPUT_LEFT} ${INPUT_BOTTOM} ${INPUT_RIGHT} ${INPUT_TOP} --out_dir output
+python ${basedir}/get_dem.py --bbox ${INPUT_LEFT} ${INPUT_BOTTOM} ${INPUT_RIGHT} ${INPUT_TOP} ${COMPUTE} --out_dir output
 
