@@ -12,13 +12,6 @@ INPUT_RIGHT=$3
 INPUT_TOP=$4
 COMPUTE=$5
 
-echo $INPUT_LEFT
-echo $INPUT_BOTTOM
-echo $INPUT_RIGHT
-echo $INPUT_TOP
-echo $COMPUTE
-
-
 # Get path to this run.sh script
 basedir=$( cd "$(dirname "$0")" ; pwd -P )
 
