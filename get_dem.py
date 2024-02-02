@@ -100,11 +100,12 @@ if __name__ == "__main__":
     See: https://registry.opendata.aws/copernicus-dem/
     
     The code will fetch the necessary DEM tiles, stitch them together with GDAL,
-    and create a single geotiff DEM as the output.
-    
-    This script makes a system call to launch `sardem` in a new subprocess.
-    Internally, `sardem` uses 4 threads for processing. In brief: there
-    are several ways to hack this wrapper to exercise more cores.
+    and create a single geotiff DEM in the `out_dir` directory, named `dem.tif`.
+
+    If the `--compute` flag is included, it will open the generated dem.tif
+    file and do compute-intensive, multi-core linear algebra computations
+    on that DEM raster. There are no changes made to the dem.tif; this command
+    is simply for benchmarking compute.
 
     Example cmd line call:
     python get_dem.py 
@@ -133,9 +134,7 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    print(f"{args.bbox=}")
     bbox = " ".join(args.bbox)
-    print(f"{bbox=}")
     
     # Step 2: Make dem.tif
     dem_file = get_dem(bbox, args.out_dir)

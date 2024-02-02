@@ -12,18 +12,23 @@ which is fetched from the AWS Open Data registry.
 See: https://registry.opendata.aws/copernicus-dem/
 
 The code will fetch the necessary DEM tiles, stitch them together with GDAL,
-and create a single geotiff DEM as the output.
+and create a single geotiff DEM in the `out_dir` directory, named `dem.tif`.
 
-To use more cores, here are some possible code updates:
- - `get-dem` uses an OS system call to launch `sardem` in a new subprocess. 
- Perhaps update `get-dem` to launch multiple calls to `sardem` in parallel?
-- `sardem` internally uses 4 threads for processing. Perhaps we could
-increase this number? (Issue: this would reduce the runtime of the algorithm.)
+If the `--compute` flag is included, it will open the generated dem.tif
+file and do compute-intensive, multi-core linear algebra computations
+on that DEM raster. There are no changes made to the dem.tif; this command
+is simply for benchmarking compute. These computations use NumPy's
+linear algebra module, which uses all available CPU cores.
 
-Example cmd line call:
+Example cmd line calls:
 
 ```
 python get_dem.py 
     --bbox -156 18.8 -154.7 20.3  # bounding box: [left  bottom  right top]
+    --out_dir output
+
+python get_dem.py 
+    --bbox -156 18.8 -154.7 20.3  # bounding box: [left  bottom  right top]
+    --compute  # flag to have the compute node perform intense, multi-core computations
     --out_dir output
 ```
