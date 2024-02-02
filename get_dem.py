@@ -5,6 +5,8 @@ from osgeo import gdal
 import numpy as np
 from time import time
 
+__version__ = "0.2.0"
+
 def get_dem(bbox: str, out_dir: str) -> str:
     """
     Generate a COP DEM Gtiff for the given bounding box.
@@ -122,6 +124,8 @@ if __name__ == "__main__":
 
     # Step 1: Parse Arguments
     parser = argparse.ArgumentParser()
+
+    parser.add_argument("-v", "--version", action="version", version=__version__)
     
     msg = "lat/lon bounding box, with orientation: [left  bottom  right top]. Example: '--bbox -156 18.8 -154.7 20.3'."
     parser.add_argument("-b", "--bbox", type=str, help=msg, nargs=4)
