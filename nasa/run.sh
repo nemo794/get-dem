@@ -14,6 +14,7 @@ COMPUTE=$5
 
 # Get path to this run.sh script
 basedir=$( cd "$(dirname "$0")" ; pwd -P )
+REPO_ROOT_PATH=$(dirname ${basedir})
 
 # Per NASA MAAP DPS convention, all outputs MUST be placed
 # by the algorithm into a directory called "output".
@@ -25,5 +26,5 @@ mkdir -p output
 # Setup the environment variables. (Req'd for sardem)
 export HOME=/home/ops
 
-python ${basedir}/get_dem.py --bbox ${INPUT_LEFT} ${INPUT_BOTTOM} ${INPUT_RIGHT} ${INPUT_TOP} ${COMPUTE} --out_dir output
+python ${REPO_ROOT_PATH}/get_dem.py --bbox ${INPUT_LEFT} ${INPUT_BOTTOM} ${INPUT_RIGHT} ${INPUT_TOP} ${COMPUTE} --out_dir output
 
