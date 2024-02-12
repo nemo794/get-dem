@@ -24,11 +24,34 @@ Example cmd line calls:
 
 ```
 python get_dem.py 
-    --bbox -156 18.8 -154.7 20.3  # bounding box: [left  bottom  right top]
+    --bbox -118.06817 34.22169 -118.05801 34.22822  # bounding box: [left  bottom  right top]
     --out_dir output
 
 python get_dem.py 
-    --bbox -156 18.8 -154.7 20.3  # bounding box: [left  bottom  right top]
+    --bbox -118.06817 34.22169 -118.05801 34.22822  # bounding box: [left  bottom  right top]
     --compute  # flag to have the compute node perform intense, multi-core computations
     --out_dir output
 ```
+
+## The three test `bbox`'s
+
+Let's use these three bounding boxes for development and to compare between platforms:
+
+1) "Mount Wilson"
+   - `--bbox -118.06817 34.22169 -118.05801 34.22822`
+   - Very small (24 x 37 pixels)
+   - Should take ~5-8 seconds to complete the algorithm*
+
+2) "California and Nevada"
+   - `--bbox -124.81360 32.44506 -113.75989 42.24498`
+   - 35280 x 39793 pixels
+   - With 8 cores on NASA DPS, takes 9-10 min to fetch+stitch DEM, and ~13-14 min for computations*
+   - Warning: Please be mindful of memory usage
+
+3) Italy
+   - `--bbox 6.26868 36.00380 18.57179 47.28139`
+   - 40599 x 44291 pixels
+   - With 8 cores on NASA DPS, takes 9-10 min to fetch+stitch DEM, and ~23-25 min for computations*
+   - Warning: Please be mindful of memory usage
+   
+* Time estimates are for timings internal to the algorithm; they do not include DPS packaging time, etc.
