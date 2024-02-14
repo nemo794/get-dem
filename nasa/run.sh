@@ -21,10 +21,10 @@ REPO_ROOT_PATH=$(dirname ${basedir})
 # Once the DPS job finishes, MAAP will copy everything from "output"
 # to a directory in my-public-bucket. Everything else on the instance
 # will be destroyed.
-mkdir -p output
+mkdir -p ${PWD}/output
 
 # Setup the environment variables. (Req'd for sardem)
 export HOME=/home/ops
 
-python ${REPO_ROOT_PATH}/get_dem.py --bbox ${INPUT_LEFT} ${INPUT_BOTTOM} ${INPUT_RIGHT} ${INPUT_TOP} ${COMPUTE} --out_dir output
+python ${REPO_ROOT_PATH}/get_dem.py --bbox ${INPUT_LEFT} ${INPUT_BOTTOM} ${INPUT_RIGHT} ${INPUT_TOP} ${COMPUTE} --out_dir ${PWD}/output
 
