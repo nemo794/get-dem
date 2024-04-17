@@ -1,30 +1,39 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+set -xeou pipefail
+
 # This is intended for running DPS jobs.
 
-# The environment.yaml file sets up a custom conda environment called `dem`.
-# For NASA MAAP DPS, use `source activate <custom>`, not `conda activate <custom>`
-source activate dem
+# `bbox` is expected to be 4 space-separated coords: left bottom right top
+bbox=$1
+# `compute` is optional, but any non-empty value will be converted to `--compute`
+compute=${2:+--compute}
 
-# [left  bottom  right top]
-INPUT_LEFT=$1
-INPUT_BOTTOM=$2
-INPUT_RIGHT=$3
-INPUT_TOP=$4
-COMPUTE=$5
+# path to the base of this repo (one level up from this script)
+basedir=$(dirname "$(dirname "$(readlink -f "$0")")")
 
-# Get path to this run.sh script
-basedir=$( cd "$(dirname "$0")" ; pwd -P )
-REPO_ROOT_PATH=$(dirname ${basedir})
+# Per NASA MAAP DPS convention, all outputs MUST be written under a directory
+# named 'output' relative to the current working directory.  Once the DPS job
+# finishes, MAAP will copy everything from 'output' to a directory under
+# 'my-private-bucket/dps_output'. Everything else on the instance will be lost.
+outdir="${PWD}/output"
 
-# Per NASA MAAP DPS convention, all outputs MUST be placed
-# by the algorithm into a directory called "output".
-# Once the DPS job finishes, MAAP will copy everything from "output"
-# to a directory in my-public-bucket. Everything else on the instance
-# will be destroyed.
-mkdir -p ${PWD}/output
-
-# Setup the environment variables. (Req'd for sardem)
-export HOME=/home/ops
-
-python ${REPO_ROOT_PATH}/get_dem.py --bbox ${INPUT_LEFT} ${INPUT_BOTTOM} ${INPUT_RIGHT} ${INPUT_TOP} ${COMPUTE} --out_dir ${PWD}/output
-
+# - The environment.yaml file sets up a custom conda environment called `dem`,
+#   so we use `conda run` to run the script in that environment.
+# - Use `scalene` to profile the script and write the output to `profile.json`.
+# - The `---` is a separator to pass arguments to `get_dem.py`, not to `scalene`.
+# - Disable ShellCheck SC2086 because we want to pass the arguments unquoted to
+#   correctly specify inputs to `get_dem.py`, but ShellCheck will flag unquoted
+#   substitutions as problematic.  For example, we want to pass arguments like
+#   this:
+#
+#     get_dem.py --bbox -156 18.8 -154.7 20.3 --out_dir /path/to/output
+#
+#   and not like this:
+#
+#     get_dem.py --bbox "-156 18.8 -154.7 20.3" --out_dir /path/to/output
+#
+# shellcheck disable=SC2086
+"${CONDA_EXE:-conda}" run --live-stream --name dem \
+    python -m scalene --no-browser --json --outfile "${outdir}/profile.json" --- \
+    "${basedir}/get_dem.py" -o "${outdir}" --bbox ${bbox} ${compute}
