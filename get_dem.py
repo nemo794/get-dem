@@ -120,7 +120,7 @@ def do_computations(dem: np.ndarray) -> None:
     square_dem = dem[:min_edge, :min_edge]
 
     # Multi-core section
-    np.dot(np.linalg.inv(square_dem), square_dem)
+    np.dot(np.linalg.pinv(square_dem), square_dem)
 
 
 def parse_args() -> Args:

@@ -10,7 +10,7 @@ RUN apt update \
     && rm -rf /var/lib/apt/lists/*
 
 # Add application
-RUN pip install --no-cache-dir "sardem~=0.11" "scalene~=1.5.38"
+RUN pip install --no-cache-dir "sardem~=0.11" "scalene~=1.5.38" "numpy~=1.26"
 
 COPY ./esa/build/entrypoint.sh /opt
 COPY ./get_dem.py /opt/get-dem/get_dem.py
