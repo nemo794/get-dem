@@ -75,7 +75,8 @@ class Submit:
                 version=self.version,
                 identifier=f"{self.tag}__{self.queue}",
                 queue=self.queue,
-                inputs={"bbox": self.bbox, "compute": self.compute},
+                bbox=self.bbox,
+                compute=self.compute,
             )
             for _ in range(self.repeat)
         ]
@@ -86,7 +87,8 @@ class Submit:
         for error_message in error_messages:
             print(f"Failed to submit job: {error_message}", file=sys.stderr)
 
-        self.output.writelines(job_ids)
+        for job_id in job_ids:
+            self.output.write(f"{job_id}\n")
 
 
 def job_error_message(job: DPSJob) -> str:

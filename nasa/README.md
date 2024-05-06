@@ -110,8 +110,14 @@ For example:
 
 ```plain
 nasa/jobs submit -a get-dem -v develop -u dschuck -t Glacier -q maap-dps-worker-c5.2xlarge \
-  -n 3 -o output/glacier__maap-dps-worker-c5.2xlarge.txt '-115.396 46.020 -110.523 48.995' true
+  -n 3 -o output/glacier__maap-dps-worker-c5.2xlarge.txt '"-115.396 46.020 -110.523 48.995"' true
 ```
+
+Note the double set of quotes around the bounding box coordinates, specifically
+a pair of _single_ quotes surrounding a pair of _double_ quotes surrounding the
+coordinates.  This is necessary when there is at least one negative coordinate.
+Otherwise, the argument parser attempts to interpret the negative sign as an
+option prefix and gets confused.
 
 The file specified for the `-o/--output` option will be populated with the job
 IDs of the submitted jobs.  This file may then be used as input for commands
