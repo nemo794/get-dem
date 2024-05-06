@@ -3,7 +3,10 @@ channels:
   - conda-forge
   - nodefaults  # force everything to come from conda-forge channel
 dependencies:
+  - cappa  # for building a CLI
   - ipykernel  # to use the conda environment in Jupyter
   - pip~=24.0
+  - pqdm
   - pip:
     - git+https://github.com/MAAP-Project/maap-py.git@v3.1.5
+    - docstring-parser  # for cappa to parse docstrings

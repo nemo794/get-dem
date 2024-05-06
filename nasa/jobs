@@ -1,0 +1,209 @@
+#!/usr/bin/env python
+
+from __future__ import annotations
+
+import json
+import sys
+from collections import Counter
+from functools import partial
+from itertools import chain
+from time import sleep
+from typing import Annotated, Any, List, Mapping, Optional, Sequence, TextIO
+
+import cappa
+from maap.dps.dps_job import DPSJob
+from maap.maap import MAAP
+from pqdm.threads import pqdm
+
+InjectedMAAP = Annotated[MAAP, cappa.Dep(lambda: MAAP("api.maap-project.org"))]
+
+
+@cappa.command
+class Jobs:
+    """Manage DPS Jobs"""
+
+    subcommand: cappa.Subcommands[Submit | Await | Locate]
+
+
+@cappa.command
+class Submit:
+    """Submit a job one or more times to the same job queue with the same inputs.
+
+    Parameters
+    ----------
+    algorithm:
+        Name of the algorithm to run.
+    version:
+        Version of the algorithm to run.
+    username:
+        Username of the user submitting the job(s).
+    tag:
+        A tag to identify the job.  It is recommended that this be indicative of the
+        region covered by the bounding box.
+    queue:
+        Name of the job queue to submit the job to.
+    repeat:
+        Number of times to submit the job.
+    output:
+        Name of the file to write the job IDs to.
+    bbox:
+        Bounding box to process, specified as 'LEFT BOTTOM RIGHT TOP', including the
+        surrounding quotes (either single or double quotes).
+    compute:
+        Flag to indicate whether or not to incorporate compute-intensive work.  To
+        *avoid* compute-intensive work, specify an empty pair of quotes (either single
+        or double quotes).  Any other value will trigger compute-intensive work.
+    """
+
+    algorithm: Annotated[str, cappa.Arg(short=True, long=True, value_name="NAME")]
+    version: Annotated[str, cappa.Arg(short=True, long=True)]
+    username: Annotated[str, cappa.Arg(short=True, long=True)]
+    tag: Annotated[str, cappa.Arg(short=True, long=True)]
+    queue: Annotated[str, cappa.Arg(short=True, long=True, value_name="NAME")]
+    repeat: Annotated[int, cappa.Arg(short="-n", long=True, value_name="INTEGER")]
+    output: Annotated[
+        TextIO, cappa.Arg(short=True, long=True, value_name="FILE"), cappa.FileMode("w")
+    ]
+    bbox: Annotated[str, cappa.Arg(value_name="'LEFT BOTTOM RIGHT TOP'")]
+    compute: Annotated[str, cappa.Arg(value_name="COMPUTE")]
+
+    def __call__(self, maap: InjectedMAAP) -> Any:
+        jobs = [
+            maap.submitJob(
+                username=self.username,
+                algo_id=self.algorithm,
+                version=self.version,
+                identifier=f"{self.tag}__{self.queue}",
+                queue=self.queue,
+                inputs={"bbox": self.bbox, "compute": self.compute},
+            )
+            for _ in range(self.repeat)
+        ]
+
+        error_messages = [job_error_message(job) for job in jobs if not job.id]
+        job_ids = [job.id for job in jobs if job.id]
+
+        for error_message in error_messages:
+            print(f"Failed to submit job: {error_message}", file=sys.stderr)
+
+        self.output.writelines(job_ids)
+
+
+def job_error_message(job: DPSJob) -> str:
+    if isinstance(job.error_details, str):
+        try:
+            return json.loads(job.error_details)["message"]
+        except (json.JSONDecodeError, KeyError):
+            return job.error_details
+
+    return job.response_code or "Unknown error"
+
+
+@cappa.command
+class Await:
+    """Wait for one or more jobs to complete.
+
+    If you start a job ID with the `@` symbol, the rest of the argument should
+    be the name of a file containing job IDs, one per line.  You can also mix
+    and match job IDs and file names, and the job IDs in the files will be
+    treated as if they were passed on the command line.
+    """
+
+    job_ids: Annotated[List[str], cappa.Arg(value_name="JOB_ID ...")]
+
+    def __call__(self, maap: InjectedMAAP):
+        job_ids = collect_job_ids(self.job_ids)
+        status_by_id = dict(zip(job_ids, await_jobs(maap, job_ids)))
+        print()
+        show_job_status_summary(status_by_id)
+
+
+def collect_job_ids(job_ids: Sequence[str]) -> Sequence[str]:
+    return list(
+        chain.from_iterable(
+            read_job_ids(job_id[1:]) if job_id.startswith("@") else [job_id]
+            for job_id in job_ids
+        )
+    )
+
+
+def read_job_ids(path: str) -> Sequence[str]:
+    with open(path) as f:
+        return f.read().splitlines()
+
+
+def await_jobs(maap: MAAP, job_ids: Sequence[str]) -> Sequence[str]:
+    return pqdm(
+        job_ids,
+        partial(await_job, maap),
+        n_jobs=len(job_ids),
+        exception_behaviour="deferred",
+        desc="Awaiting jobs",
+        unit="job",
+    )
+
+
+def await_job(maap: MAAP, job_id: str) -> str:
+    while (status := maap.getJobStatus(job_id)) in {"Accepted", "Running"}:
+        sleep(10)
+    return str(status)
+
+
+def show_job_status_summary(job_statuses: Mapping[str, str]):
+    for job_id, status in job_statuses.items():
+        print(f"{job_id}: {status}")
+
+    print()
+    counts = Counter(job_statuses.values()).most_common()
+    print(", ".join(f"{status}: {count}" for status, count in counts))
+
+
+@cappa.command
+class Locate:
+    """Locate the output directory(ies) for one or more jobs.
+
+    If you start a job ID with the `@` symbol, the rest of the argument should
+    be the name of a file containing job IDs, one per line.  You can also mix
+    and match job IDs and file names, and the job IDs in the files will be
+    treated as if they were passed on the command line.
+
+    Parameters
+    ----------
+    filename:
+        Name of a file to append to each output directory path, if provided.
+        Useful for locating specific files within each output directory.
+    """
+
+    filename: Annotated[str, cappa.Arg(short=True, long=True, value_name="NAME")]
+    job_ids: Annotated[List[str], cappa.Arg(value_name="JOB_ID ...")]
+
+    def __call__(self, maap: InjectedMAAP):
+        for job in map(maap.getJob, collect_job_ids(self.job_ids)):
+            if outdir := job_output_dir(job):
+                print(outdir if not self.filename else f"{outdir}/{self.filename}")
+            else:
+                print(
+                    f"Job {job.id} has no output location: {job.status}",
+                    file=sys.stderr,
+                )
+
+
+def job_output_dir(job: DPSJob) -> Optional[str]:
+    from urllib.parse import urlparse
+
+    if outputs := job.outputs:
+        return "/".join(
+            [
+                "",
+                "projects",
+                "my-private-bucket",
+                # Drop "/<username>" prefix from the path
+                *urlparse(outputs[0]).path.split("/")[2:],
+            ]
+        )
+
+    return None
+
+
+if __name__ == "__main__":
+    cappa.invoke(Jobs)

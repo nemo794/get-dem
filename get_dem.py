@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 import os
 from dataclasses import dataclass
@@ -35,10 +36,15 @@ def logtime(func):
 
     @wraps(func)
     def wrapper(*args, **kwargs):
-        start = time()
+        start_seconds = time()
         result = func(*args, **kwargs)
-        logger.info("%s: %.1f seconds", func.__name__, time() - start)
+        elapsed_seconds = time() - start_seconds
+        logger.info("%s: %.3f seconds", func.__name__, elapsed_seconds)
+        logtime.timings[func.__name__] = elapsed_seconds
+
         return result
+
+    logtime.timings = {}
 
     return wrapper
 
@@ -200,6 +206,12 @@ def main() -> None:
     # Step 3: Perform compute-intensive, multicore operations
     if args.compute:
         do_computations(read_dem_as_array(dem_file))
+
+    # Step 4: Write function timings to disk because Scalene's profile output
+    # does not capture *elapsed* function times, only *CPU* function times.
+    if hasattr(logtime, "timings"):
+        with open(os.path.join(args.out_dir, "elapsed.json"), "w") as fp:
+            json.dump(logtime.timings, fp, indent=2)
 
 
 if __name__ == "__main__":
