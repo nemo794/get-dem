@@ -1,6 +1,13 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-set -ex
+set -e
+
+# shellcheck disable=SC1091
+source "${HOME}/conda/etc/profile.d/conda.sh"
+conda activate
+
+set -x
+
 export LC_ALL=C.UTF-8
 export LANG=C.UTF-8
 
